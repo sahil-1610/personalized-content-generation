@@ -1,4 +1,4 @@
-# Chat AI App
+# Personalized Content Creation
 
 A modern AI-powered chat application built with **Stream Chat**, **OpenAI**, and **web search capabilities**. This full-stack application provides an intelligent writing assistant that can help with content creation, research, and real-time collaboration.
 
@@ -322,3 +322,4 @@ For support and questions:
 ---
 
 Built with ❤️ using GetStream.io, OpenAI, and modern web technologies.
+](https://github.com/sahil-1610/personalized-content-generationGenerate  all the files related to documenation)
