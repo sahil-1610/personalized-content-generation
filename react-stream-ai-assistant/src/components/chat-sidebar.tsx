@@ -22,13 +22,15 @@ import { useNavigate } from "react-router-dom";
 import { Channel, ChannelFilters, ChannelSort } from "stream-chat";
 import { ChannelList, useChatContext } from "stream-chat-react";
 import { useTheme } from "../hooks/use-theme";
+import { supabase, supabaseEnabled } from "@/lib/supabase";
+import { useEffect, useState } from "react";
 
 interface ChatSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
   onNewChat: () => void;
-  onChannelDelete: (channel: Channel) => void;
+  onChannelDelete: (channel: any) => void;
 }
 
 const ChannelListEmptyStateIndicator = () => (
@@ -64,6 +66,28 @@ export const ChatSidebar = ({
   const { user } = client;
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const [bio, setBio] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!user || !supabaseEnabled) return;
+      try {
+        const { data } = await supabase
+          .from("onboardings")
+          .select("bio")
+          .eq("user_id", user.id)
+          .single();
+        if (!mounted) return;
+        setBio(data?.bio || null);
+      } catch (err) {
+        console.warn("Failed to load onboarding bio", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   if (!user) return null;
 
@@ -128,7 +152,8 @@ export const ChatSidebar = ({
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   <span className="flex-1 truncate text-sm font-medium">
-                    {previewProps.channel.data?.name || "New Writing Session"}
+                    {(previewProps.channel.data as any)?.name ||
+                      "New Writing Session"}
                   </span>
                   <Button
                     variant="ghost"
@@ -177,6 +202,26 @@ export const ChatSidebar = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-72" align="end">
+              {/* Profile header with name and bio */}
+              <div className="p-3 border-b">
+                <div className="flex items-start gap-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={user?.image} alt={user?.name} />
+                    <AvatarFallback>
+                      {user?.name?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 max-h-12 overflow-hidden text-ellipsis">
+                      {bio || "No bio yet. Click Edit profile to add one."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <DropdownMenuItem
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
@@ -188,6 +233,10 @@ export const ChatSidebar = ({
                 <span>
                   Switch to {theme === "dark" ? "Light" : "Dark"} Theme
                 </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/onboarding")}>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                <span>Edit profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

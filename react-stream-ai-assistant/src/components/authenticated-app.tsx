@@ -32,7 +32,7 @@ export const AuthenticatedApp = ({ user, onLogout }: AuthenticatedAppProps) => (
 const AuthenticatedCore = ({ user, onLogout }: AuthenticatedAppProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [channelToDelete, setChannelToDelete] = useState<Channel | null>(null);
+  const [channelToDelete, setChannelToDelete] = useState<any | null>(null);
   const { client, setActiveChannel } = useChatContext();
   const navigate = useNavigate();
   const { channelId } = useParams<{ channelId: string }>();
@@ -43,11 +43,16 @@ const AuthenticatedCore = ({ user, onLogout }: AuthenticatedAppProps) => {
       if (!client) return;
 
       if (channelId) {
+        console.debug("Setting active channel:", channelId);
         const channel = client.channel("messaging", channelId);
         await channel.watch();
         setActiveChannel(channel);
       } else {
-        setActiveChannel(undefined);
+        console.debug("Clearing active channel - showing empty state");
+        // Force clear the active channel
+        setActiveChannel(null as any);
+        // Small delay to ensure state is updated
+        setTimeout(() => setActiveChannel(undefined), 10);
       }
     };
     syncChannelWithUrl();
@@ -61,7 +66,7 @@ const AuthenticatedCore = ({ user, onLogout }: AuthenticatedAppProps) => {
       const newChannel = client.channel("messaging", uuidv4(), {
         name: message.text.substring(0, 50),
         members: [user.id],
-      });
+      } as any);
       await newChannel.watch();
 
       // 2. Set up event listener for when AI agent is added as member
@@ -105,11 +110,11 @@ const AuthenticatedCore = ({ user, onLogout }: AuthenticatedAppProps) => {
 
   const handleNewChatClick = () => {
     setActiveChannel(undefined);
-    navigate("/");
+    navigate("/chat");
     setSidebarOpen(false);
   };
 
-  const handleDeleteClick = (channel: Channel) => {
+  const handleDeleteClick = (channel: any) => {
     setChannelToDelete(channel);
     setShowDeleteDialog(true);
   };
@@ -118,7 +123,7 @@ const AuthenticatedCore = ({ user, onLogout }: AuthenticatedAppProps) => {
     if (channelToDelete) {
       try {
         if (channelId === channelToDelete.id) {
-          navigate("/");
+          navigate("/chat");
         }
         await channelToDelete.delete();
       } catch (error) {

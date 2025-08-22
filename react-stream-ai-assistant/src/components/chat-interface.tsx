@@ -31,7 +31,7 @@ interface ChatInterfaceProps {
 }
 
 const EmptyStateWithInput: React.FC<{
-  onNewChatMessage: ChatInputProps["sendMessage"];
+  onNewChatMessage: (message: { text: string }) => Promise<void>;
 }> = ({ onNewChatMessage }) => {
   const [inputText, setInputText] = useState("");
 
@@ -221,6 +221,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     backendUrl,
   });
 
+  // Get current route to determine if we should show empty state
+  const location = window.location;
+  const isMainChatRoute = location.pathname === "/chat";
+  const hasChannelId =
+    location.pathname.startsWith("/chat/") && location.pathname !== "/chat";
+
+  console.debug("ChatInterface render:", {
+    hasChannel: !!channel,
+    channelId: channel?.id,
+    channelName: (channel?.data as any)?.name,
+    pathname: location.pathname,
+    isMainChatRoute,
+    hasChannelId,
+  });
+
+  // Force empty state if we're on /chat route regardless of channel state
+  const shouldShowEmptyState = isMainChatRoute || (!hasChannelId && !channel);
+
   const ChannelMessageInputComponent = () => {
     const { sendMessage } = useChannelActionContext();
     const { channel, messages } = useChannelStateContext();
@@ -233,7 +251,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       aiState === "AI_STATE_GENERATING" ||
       aiState === "AI_STATE_EXTERNAL_SOURCES";
 
-    console.log("aiState", aiState);
+    // console.log("aiState", aiState);
 
     const handleStopGenerating = () => {
       if (channel) {
@@ -250,9 +268,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     };
 
+    // Wrapper function to match ChatInput's expected signature
+    const handleSendMessage = async (message: { text: string }) => {
+      if (channel) {
+        // Use channel.sendMessage directly which has a simpler API
+        await channel.sendMessage({ text: message.text });
+      }
+    };
+
     return (
       <ChatInput
-        sendMessage={sendMessage}
+        sendMessage={handleSendMessage}
         value={inputText}
         onValueChange={setInputText}
         textareaRef={textareaRef}
@@ -288,7 +314,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-semibold text-foreground">
-                {channel?.data?.name || "New Writing Session"}
+                {shouldShowEmptyState
+                  ? "New Writing Session"
+                  : (channel?.data as any)?.name || "New Writing Session"}
               </h2>
               <p className="text-xs text-muted-foreground">
                 AI Writing Assistant • Always improving
@@ -310,7 +338,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0">
-        {!channel ? (
+        {shouldShowEmptyState ? (
           <EmptyStateWithInput onNewChatMessage={onNewChatMessage} />
         ) : (
           <Channel channel={channel}>
