@@ -160,6 +160,7 @@ function AppContent() {
                       id: authUser!.id,
                       email: authUser!.email,
                       full_name: authUser!.full_name,
+                      avatar_url: authUser!.avatar_url,
                     }}
                     onComplete={() => {
                       setNeedsOnboarding(false);
